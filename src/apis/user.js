@@ -43,10 +43,13 @@ const createUser = logger => (req, res) => {
             case 'ERR_PAYLOAD_FORMAT':
                 status = 400;
                 errorCode = err.code;
+                break;
             case 'USER_ALREADY_EXIST':
                 status = 409;
                 errorCode = err.code;
+                break;
             default:
+                break;
         }
         res.status(status).json({ errorCode });
 

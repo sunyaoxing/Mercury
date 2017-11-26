@@ -1,24 +1,35 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  var User = sequelize.define('user', {
-    mercuryId: {
+  var User = sequelize.define('application', {
+    appId: {
       type: DataTypes.STRING,
-      field: 'mercuryId',
+      field: 'appId',
       primaryKey: true
     },
-    email: {
+    secret: {
       type: DataTypes.STRING,
-      field: 'email',
+      field: 'secret',
       allowNull: false
     },
-    password: {
+    name: {
       type: DataTypes.STRING,
-      field: 'password',
-      unique: true
+      field: 'name',
+      allowNull: false
     },
-    displayName: {
+    owner: {
       type: DataTypes.STRING,
-      field: 'displayName'
+      field: 'owner',
+      allowNull: false
+    },
+    description: {
+      type: DataTypes.STRING,
+      field: 'description',
+      allowNull: false
+    },
+    gatewaySecret: {
+      type: DataTypes.STRING,
+      field: 'gatewaySecret',
+      allowNull: false
     },
 
     createdAt: {
@@ -29,6 +40,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       field: 'updatedAt'
     }
+
   }, {
     classMethods: {
       associate: function(models) {

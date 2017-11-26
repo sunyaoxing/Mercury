@@ -1,4 +1,8 @@
 'use strict';
+const fuck = require('../../src/core/user.js');
+console.log(fuck)
+
+
 const { makeUser, createUser, updateUser, findUserById, findUserByEmail, authenticateUser } = require('../../src/core/user.js');
 const model = require('../../src/models');
 const Logger = require('logger');

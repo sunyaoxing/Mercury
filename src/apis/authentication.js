@@ -1,50 +1,49 @@
 'use strict';
 const assert = require('assert');
 const coreApplication = require('../core/application');
+const coreToken = require('../core/token');
 
-/**
- * @function _validateCreateApplicationPayload
- * Validate the parameter to create an application
- *
- * @returns {Object} application
- *          {String} application.name
- *          {String} application.owner
- *          {String} application.description
- */
-const _validateCreateApplicationPayload = (logger, req) => {
+
+const _validateAuthenticationHeader = (logger, req) => {console.log(req.body)
     const payload = req.body;
     try {
         assert(payload);
-        assert(payload.name);
-        assert(payload.owner);
-        assert(payload.description);
+        assert(payload.appId);
+        assert(payload.secret);
         return {
-            name: payload.name,
-            owner: payload.owner,
-            description: payload.description
-        };
+            appId: payload.appId,
+            secret: payload.secret
+        }
     } catch (err) {
         logger.warn(`Payload is not valid: ${err.stack}`);
         const error = new Error(`Payload is not valid`);
         error.code = "ERR_PAYLOAD_FORMAT";
         throw error;
-    }
+    };
 }
 
-const createApplication = logger => (req, res) => {
+const authenticate = logger => (req, res) => {
     const startTime = new Date();
     logger = logger.createLogger({ controller: 'createApplication' });
     logger.info('Controller Starts');
 
+    let credential;
     Promise.resolve().then(() => {
-        const application = _validateCreateApplicationPayload(logger, req);
-        return coreApplication.createApplication(logger, application);
-    }).then(application =>{
-        logger.info(`Application created.`);
-        res.status(201).json(application);
-
-        const duration = new Date() - startTime;
-        logger.info(`Controller Ends. duration=${duration}`);
+        credential = _validateAuthenticationHeader(logger, req);
+        return coreApplication.authenticateApplication(logger, credential.appId, credential.secret);
+    }).then(result =>{
+        if (result) {
+            logger.info(`Application authenticated`);
+            return coreToken.createApplicationToken(logger, credential.appId).then(token => {
+                res.status(200).json(token);
+            })
+        } else {
+            // authenticate failed, return 401
+            res.status(401).json({
+                errorCode: 'INVALID_CREDENTIAL'
+            });
+            return;
+        }
     }).catch (err => {
         logger.warn(`Error happened: ${err.code}, ${err.stack}`);
         let status = 500;
@@ -59,12 +58,13 @@ const createApplication = logger => (req, res) => {
         }
         res.status(status).json({ errorCode });
 
+    }).then(() => {
         const duration = new Date() - startTime;
         logger.info(`Controller Ends. duration=${duration}`);
     });
-};
-
+}
 
 module.exports = {
-    createApplication
+    authenticate
 };
+

@@ -5,4 +5,3 @@ const model = require('../models');
 // sharding will then be done here.
 
 module.exports = require('./shard/applications')(model);
-

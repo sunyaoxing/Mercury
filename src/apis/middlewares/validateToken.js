@@ -26,11 +26,30 @@ const validateToken = logger => (req, res, next) => {
             res.status(500).json({
                 errorCode: 'INTERNAL_ERROR'
             });
+            return;
         });
     } else {
-        logger.info('Authorization header not found. Skip');
-        if (next);
+        if (req.headers['x-token']) {
+            const token = JSON.stringify('x-token');
+            if (token.appId & token.mercuryId) {
+                // TODO: validate gateway secret
+                req.token = {
+                    appId: token.appId,
+                    mercuryId: token.mercuryId
+                };
+            } else {
+                // Make it bad request
+                logger.error(`Internal error happened: Code=${err.code}\n ${err.stack}`);
+                res.status(500).json({
+                    errorCode: errorCode.ERR_INVALID_TOKEN
+                });
+                return;
+            }
             next();
+        } else {
+            logger.info('Authorization header not found. Skip');
+            next()
+        }
     }
 }
 

@@ -3,6 +3,8 @@ const assert = require('assert');
 const coreApplication = require('../core/application');
 const coreToken = require('../core/token');
 
+const { trackRequest } = require('./common');
+
 
 const _validateAuthenticationHeader = (logger, req) => {console.log(req.body)
     const payload = req.body;
@@ -23,15 +25,19 @@ const _validateAuthenticationHeader = (logger, req) => {console.log(req.body)
 }
 
 const authenticate = logger => (req, res) => {
+    logger = trackRequest(logger, req);
+
     const startTime = new Date();
-    logger = logger.createLogger({ controller: 'createApplication' });
+
+
+    logger = logger.createLogger({ controller: 'authorization' });
     logger.info('Controller Starts');
 
     let credential;
     Promise.resolve().then(() => {
         credential = _validateAuthenticationHeader(logger, req);
         return coreApplication.authenticateApplication(logger, credential.appId, credential.secret);
-    }).then(result =>{
+    }).then(result => {
         if (result) {
             logger.info(`Application authenticated`);
             return coreToken.createApplicationToken(logger, credential.appId).then(token => {

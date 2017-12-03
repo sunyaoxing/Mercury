@@ -13,14 +13,21 @@ const validateToken = logger => (req, res, next) => {
     if (authorization) {
         logger.info (`Authorization header found: ${authorization}`);
         // Suppose it starts from "BEARER"
-        const token = authorization.subString(6);
+        const token = authorization.substring(7);
         coreToken.getToken(logger, token).then(tokenValue => {
-            logger.info (`Token info found: ${tokenValue}`);
-            req.token = {
-                appId: tokenValue.appId,
-                mercuryId: tokenValue.mercuryId
-            };
-            next();
+            if (!tokenValue) {
+                logger.info (`Token not valid`);
+                res.status(403).json({
+                    code: errorCode.ERR_INVALID_TOKEN
+                });
+            } else {
+                logger.info (`Token info found: ${JSON.stringify(tokenValue)}`);
+                req.token = {
+                    appId: tokenValue.appId,
+                    mercuryId: tokenValue.mercuryId
+                };
+                next();
+            }
         }).catch(err => {
             logger.error(`Internal error happened: Code=${err.code}\n ${err.stack}`);
             res.status(500).json({
@@ -33,6 +40,7 @@ const validateToken = logger => (req, res, next) => {
             const token = JSON.stringify('x-token');
             if (token.appId & token.mercuryId) {
                 // TODO: validate gateway secret
+                logger.info (`Called from gateway, application=${token.appId}, user=${token.mercuryId}`);
                 req.token = {
                     appId: token.appId,
                     mercuryId: token.mercuryId
@@ -45,11 +53,17 @@ const validateToken = logger => (req, res, next) => {
                 });
                 return;
             }
-            next();
         } else {
             logger.info('Authorization header not found. Skip');
-            next()
+            // Token  is not provided; we return 401
+            logger.error('token not provided');
+            res.status(401).json({
+                code: errorCode.ERR_INVALID_TOKEN
+            });
+            return;
         }
+
+        next();
     }
 }
 

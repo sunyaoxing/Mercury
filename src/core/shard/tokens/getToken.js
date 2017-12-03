@@ -2,7 +2,7 @@
 
 const { TOKEN_TYPE } = require('./common');
 
-const hmset = redisClient => (...args) => {
+const hmget = redisClient => (...args) => {
     return new Promise((resolve, reject) => {
         const promisify = (err, reply) => {
             if (err)
@@ -11,8 +11,8 @@ const hmset = redisClient => (...args) => {
                 resolve(reply);
             }
         };
-        const args = [...args, promisify]
-        redisClient.hmget.call(redisClient, args);
+        args = [...args, promisify]
+        redisClient.hmget.apply(redisClient, args);
     });
 };
 
@@ -30,7 +30,7 @@ const isValidToken = tokenValue => {
             return false;
     }
 
-    if (!appId || !timestamp || !expire) {
+    if (!tokenValue.appId || !tokenValue.timestamp || !tokenValue.expire) {
         return false;
     }
 
@@ -38,14 +38,23 @@ const isValidToken = tokenValue => {
 }
 
 const getToken = redisClient => (logger, token) => {
-    return hmget(token, 'tokenType', 'appId', 'mercuryId', 'timestamp', 'expire').then(tokenValue => {
+    return hmget(redisClient)(token, 'tokenType', 'appId', 'mercuryId', 'timestamp', 'expire').then(tokenValue => {
+        tokenValue = {
+            tokenType: tokenValue[0],
+            appId: tokenValue[1],
+            mercuryId: tokenValue[2],
+            timestamp: tokenValue[3],
+            expire: tokenValue[4]
+        };
+
         // Check if token is valid
-        if (!isValidToken)
+        if (!isValidToken(tokenValue))
             return null;
 
         // Check if already expired
-        if (tokenValue.timestamp + tokenValue.expire < Date.now)
+        if (tokenValue.timestamp + tokenValue.expire < Date.now()) {
             return null;
+        }
 
         return tokenValue;
     });
@@ -53,7 +62,7 @@ const getToken = redisClient => (logger, token) => {
 
 const createModule = redisClient => {
     return {
-        getToken: getToken(getToken)
+        getToken: getToken(redisClient)
     }
 };
 
